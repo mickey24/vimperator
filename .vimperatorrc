@@ -1,0 +1,122 @@
+" .vimperatorrc for Vimperator 1.2
+
+echo 'Loading .vimperatorrc ...'
+
+" Log echoes to error console "{{{1
+javascript <<EOM
+let (echo_old = liberator.echo) {
+    liberator.echo = function(str, flags) {
+        liberator.log("echo: " + str, 0);
+        return echo_old(str, flags);
+    }
+}
+
+let (echoerr_old = liberator.echoerr) {
+    liberator.echoerr = function(str, flags) {
+        liberator.log("echoerr: " + str, 0);
+        return echoerr_old(str, flags);
+    }
+}
+EOM
+
+" Mappings "{{{1
+" For normal mode "{{{2
+" Scroll settings
+noremap j 5j
+noremap k 5k
+noremap w 5h
+noremap e 5l
+noremap J <C-f>
+noremap K <C-b>
+
+" Go to the next/previous tab
+noremap h <C-p>
+noremap l <C-n>
+
+" Disable some mappings
+noremap gh <Nop>
+noremap a <Nop>
+
+" For comand mode "{{{2
+cnoremap <C-b> <Left>
+cnoremap <C-f> <Right>
+cnoremap <C-p> <S-Tab>
+cnoremap <C-n> <Tab>
+
+" For insert mode "{{{2
+inoremap <C-b> <Left>
+inoremap <C-f> <Right>
+inoremap <C-p> <Up>
+inoremap <C-n> <Down>
+inoremap <C-m> <Enter>
+
+" Options "{{{1
+set activate=homepage,quickmark,tabopen,paste
+set complete=l
+set focuscontent
+set newtab=all
+set showtabline=0
+set visualbell
+set wildoptions=auto
+
+" copy.js "{{{1
+js <<EOM
+liberator.globalVariables.copy_templates = [
+  { label: 'titleAndURL', value: '%TITLE% %URL%' },
+  { label: 'title',       value: '%TITLE%', map: 'Y' },
+];
+EOM
+
+" Plugin settings "{{{1
+" direct_bookmark.js "{{{2
+let g:direct_sbm_use_services_by_tag='hd'
+let g:direct_sbm_use_services_by_post='hd'
+let g:direct_sbm_is_normalize='false'
+let g:direct_sbm_is_use_migemo='true'
+
+" feedSomeKeys.js "{{{2
+autocmd LocationChange .* :fmapc
+
+" feedSomeKeys.js:livedoor Reader
+autocmd LocationChange reader\.livedoor\.com/reader/ fmaps j k s a p o v c <Space> <S-Space> z b < >
+autocmd LocationChange reader\.livedoor\.com/reader/ :fmap o vj
+autocmd LocationChange reader\.livedoor\.com/reader/ :fmap J <Space>
+autocmd LocationChange reader\.livedoor\.com/reader/ :fmap K <S-Space>
+
+" feedSomeKeys.js:Gmail
+autocmd LocationChange mail\.google\.com/mail fmaps -d 4 c / j k n p o u e x s r a # [ ] z ! ? gi gs gt gd ga gc
+
+" feedSomeKeys.js:Tumblr (require: ReblogCommand)
+autocmd LocationChange .*\.tumblr\.com/ :fmap i t
+autocmd LocationChange .*\.tumblr\.com/ :fmap I T
+
+" ime_controller.js "{{{2
+let g:ex_ime_mode='inactive'
+
+" ldrize_cooperation.js "{{{2
+let g:ldrc_intelligence_bind='true'
+
+" reading.js "{{{2
+let g:reading_servicename='Reading'
+let g:reading_format='$COMMENT$SERVICENAME: $TITLE $URL'
+
+" For the flicker of displaying completion by several keymappings "{{{1
+javascript <<EOM
+[
+    [',h',':tabmove! -1',true], // Move the current tab
+    [',l',':tabmove! +1',true], // Move the current tab
+    ['q',':toggleldrc',true],      // Toggle ldrize_cooperatio
+    ['A',':sbm [',false],          // Add the current page to hatena bookmark and delicious
+    [',a',':mr alc ',false],    // SPACE ALC
+].forEach(function([key,command,exec]){
+    liberator.mappings.addUserMap([liberator.modes.NORMAL], [key],
+        'User defined mapping',
+        function(){ exec ? liberator.execute(command) :
+            liberator.commandline.open(command.substring(0, 1), command.substring(1), liberator.modes.EX); },
+        { rhs: command, noremap: true });
+});
+EOM
+"}}}
+
+echo 'Loading .vimperatorrc ... done.'
+" vim: set ft=vimperator:
