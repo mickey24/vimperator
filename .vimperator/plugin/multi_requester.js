@@ -1,77 +1,101 @@
-/**
- * ==VimperatorPlugin==
- * @name             multi_requester.js
- * @description      request, and the result is displayed to the buffer.
- * @description-ja   リクエストの結果をバッファに出力する。
- * @author           suVene suvene@zeromemory.info
- * @version          0.4.2
- * @minVersion       1.2
- * @maxVersion       1.2
- * Last Change:      07-Dec-2008.
- * ==/VimperatorPlugin==
- *
- * HEAD COMMENT {{{
- * Usage:
- *   command[!] subcommand [ANY_TEXT]
- *
- *     !                create new tab.
- *     ANY_TEXT         your input text
- *
- *   :mr  alc[,goo,any1,any2…] ANY_TEXT           -> request by the input text, and display to the buffer.
- *   :mr! goo[,any1,any2,…]    {window.selection} -> request by the selected text, and display to the new tab.
- *
- *   other siteinfo by wedata.
- *     @see http://wedata.net/databases/Multi%20Requester/items
- *
- * CUSTOMIZE .vimperatorrc:
- *
- * [COMMAND](default [mr])
- *   let g:multi_requester_command = "ANY1, ANY2, ……"
- *     or
- *   liberator.globalVariables.multi_requester_command = [ANY1, ANY2, ……];
- *
- * [SITEINFO]
- *   ex.)
- *   javascript <<EOM
- *   liberator.globalVariables.multi_requester_siteinfo = [
- *       {
- *           map:           ',me',                          // optional: keymap for this siteinfo call
- *           bang:          true,                           // optional:
- *           args:          'any'                           // optional:
- *           name:          'ex',                           // required: subcommand name
- *           description:   'example',                      // required: commandline short help
- *           url:           'http://example.com/?%s',       // required: %s <-- replace string
- *           xpath:         '//*',                          // optional: default all
- *           srcEncode:     'SHIFT_JIS',                    // optional: default UTF-8
- *           urlEncode:     'SHIFT_JIS',                    // optional: default srcEncode
- *           ignoreTags:    'img',                          // optional: default script, syntax 'tag1,tag2,……'
- *           extractLink:   '//xpath'                       // optional: extract permalink
- *       },
- *   ];
- *   EOM
- *
- * [MAPPINGS]
- *   ex.)
- *   javascript <<EOM
- *   liberator.globalVariables.multi_requester_mappings = [
- *       [',ml', 'ex'],                  // == :mr  ex
- *       [',mg', 'goo', '!'],            // == :mr! goo
- *       [',ma', 'alc',    , 'args'],    // == :mr  alc args
- *   ];
- *   EOM
- *
- * [OTHER OPTIONS]
- *   let g:multi_requester_use_wedata = "false"             // true by default
- *
- *
- * TODO:
- *    - wedata local cache.
- *  }}}
- */
+/*** BEGIN LICENSE BLOCK {{{
+    Copyright (c) 2008 suVene<suvene@zeromemory.info>
+
+    distributable under the terms of an MIT-style license.
+    http://www.opensource.jp/licenses/mit-license.html
+}}}  END LICENSE BLOCK ***/
+// PLUGIN_INFO//{{{
+var PLUGIN_INFO =
+<VimperatorPlugin>
+    <name>{NAME}</name>
+    <description>request, and the result is displayed to the buffer.</description>
+    <description lang="ja">リクエストの結果をバッファに出力する。</description>
+    <author mail="suvene@zeromemory.info" homepage="http://zeromemory.sblo.jp/">suVene</author>
+    <version>0.4.10</version>
+    <license>MIT</license>
+    <minVersion>2.0pre</minVersion>
+    <maxVersion>2.0pre</maxVersion>
+    <updateURL>http://svn.coderepos.org/share/lang/javascript/vimperator-plugins/trunk/multi_requester.js</updateURL>
+    <detail><![CDATA[
+== Needs Library ==
+- _libly.js(ver.0.1.15)
+  @see http://coderepos.org/share/browser/lang/javascript/vimperator-plugins/trunk/_libly.js
+
+== Usage ==
+>||
+command[!] subcommand [ANY_TEXT]
+||<
+- !                create new tab.
+- ANY_TEXT         your input text
+
+e.g.)
+>||
+:mr  alc[,goo,any1,any2…] ANY_TEXT           -> request by the input text, and display to the buffer.
+:mr! goo[,any1,any2,…]    {window.selection} -> request by the selected text, and display to the new tab.
+||<
+
+== Custumize .vimperatorrc ==
+=== Command(default [mr]) ===
+>||
+let g:multi_requester_command = "ANY1, ANY2, ……"
+or
+liberator.globalVariables.multi_requester_command = [ANY1, ANY2, ……];
+||<
+
+=== Default Sites (default undefined) ===
+>||
+liberator.globalVariables.multi_requester_default_sites = "alc,goo"
+||<
+These sites(subcommands) will be used, if this variable has been defined and you do not specify subcommands.
+
+=== SITEINFO ===
+e.g.)
+>||
+javascript <<EOM
+liberator.globalVariables.multi_requester_siteinfo = [
+    {
+        map:            ',me',                          // optional: keymap for this siteinfo call
+        bang:           true,                           // optional:
+        args:           'any'                           // optional:
+        name:           'ex',                           // required: subcommand name
+        description:    'example',                      // required: commandline short help
+        url:            'http://example.com/?%s',       // required: %s <-- replace string
+        xpath:          '//*',                          // optional: default all
+        srcEncode:      'SHIFT_JIS',                    // optional: default UTF-8
+        urlEncode:      'SHIFT_JIS',                    // optional: default srcEncode
+        ignoreTags:     'img',                          // optional: default script, syntax 'tag1,tag2,……'
+        extractLink:    '//xpath'                       // optional: extract permalink
+    },
+];
+EOM
+||<
+
+=== other siteinfo by wedata. ===
+    @see http://wedata.net/databases/Multi%20Requester/items
+
+=== Mappings ===
+e.g.)
+>||
+javascript <<EOM
+liberator.globalVariables.multi_requester_mappings = [
+    [',ml', 'ex'],                  // == :mr  ex
+    [',mg', 'goo', '!'],            // == :mr! goo
+    [',ma', 'alc',    , 'args'],    // == :mr  alc args
+];
+EOM
+||<
+
+=== Other Options ===
+>||
+let g:multi_requester_use_wedata = "false"             // true by default
+||<
+
+     ]]></detail>
+</VimperatorPlugin>;
+//}}}
 (function() {
-io.source(io.expandPath('~/.vimperator/plugin/libly.js'));
 if (!liberator.plugins.libly) {
-    liberator.log('multi_requester: needs libly.js');
+    liberator.log('multi_requester: needs _libly.js');
     return;
 }
 
@@ -93,8 +117,8 @@ var SITEINFO = [
         urlEncode:   'UTF-8'
     },
 ];
-var lib = liberator.plugins.libly;
-var $U = lib.$U;
+var libly = liberator.plugins.libly;
+var $U = libly.$U;
 var logger = $U.getLogger('multi_requester');
 var mergedSiteinfo = {};
 //}}}
@@ -104,20 +128,21 @@ var CommandRegister = {
     register: function(cmdClass, siteinfo) {
         cmdClass.siteinfo = siteinfo;
 
-        liberator.commands.addUserCommand(
+        commands.addUserCommand(
             cmdClass.name,
             cmdClass.description,
             $U.bind(cmdClass, cmdClass.cmdAction),
             {
-                completer: cmdClass.cmdCompleter || function(filter, bang) {
-
-                    var filters = filter.split(',');
+                completer: cmdClass.cmdCompleter || function(context, arg) {
+                    context.title = ['Name', 'Descprition'];
+                    var filters = context.filter.split(',');
                     var prefilters = filters.slice(0, filters.length - 1);
                     var prefilter = !prefilters.length ? '' : prefilters.join(',') + ',';
                     var subfilters = siteinfo.filter(function(s) prefilters.every(function(p) s.name != p));
                     var allSuggestions = subfilters.map(function(s) [prefilter + s.name, s.description]);
-                    if (!filter) return [0, allSuggestions];
-                    return [0, allSuggestions.filter(function(s) s[0].indexOf(filter) == 0)]
+                    context.completions = context.filter
+                        ? allSuggestions.filter(function(s) s[0].indexOf(context.filter) == 0)
+                        : allSuggestions;
                 },
                 options: cmdClass.cmdOptions,
                 argCount: cmdClass.argCount || undefined,
@@ -143,7 +168,7 @@ var CommandRegister = {
                         if (sel.length) {
                             liberator.execute(cmd + sel);
                         } else {
-                            liberator.commandline.open(':', cmd, liberator.modes.EX);
+                            commandline.open(':', cmd, modes.EX);
                         }
                     }
                 },
@@ -198,31 +223,23 @@ var DataAccess = {
         });
 
         if (useWedata) {
-            logger.log('use Wedata');
-            this.getWedata(function(site) {
-                if (mergedSiteinfo[site.name]) return;
-                mergedSiteinfo[site.name] = {};
-                $U.extend(mergedSiteinfo[site.name], site);
-            });
+            logger.log('use wedata');
+            var wedata = new libly.Wedata('Multi%20Requester');
+            wedata.getItems(24 * 60 * 60 * 1000,
+                function(item) {
+                    var site = item.data;
+                    if (mergedSiteinfo[site.name]) return;
+                    mergedSiteinfo[site.name] = {};
+                    $U.extend(mergedSiteinfo[site.name], site);
+                },
+                function(isSuccess, data) {
+                    if (!isSuccess) return;
+                    CommandRegister.register(MultiRequester, $U.A(mergedSiteinfo));
+                }
+            );
         }
 
         return $U.A(mergedSiteinfo);
-    },
-    getWedata: function(func) {
-        var req = new lib.Request(
-            'http://wedata.net/databases/Multi%20Requester/items.json'
-        );
-        req.addEventListener('onSuccess', function(res) {
-            var text = res.responseText;
-            if (!text) return;
-            var json = $U.evalJson(text);
-            if (!json) return;
-
-            json.forEach(function(item) func(item.data));
-            CommandRegister.register(MultiRequester, $U.A(mergedSiteinfo));
-
-        });
-        req.get();
     }
 };
 //}}}
@@ -231,13 +248,17 @@ var DataAccess = {
 var MultiRequester = {
     name: DataAccess.getCommand(),
     description: 'request, and display to the buffer',
+    defaultSites: liberator.globalVariables.multi_requester_default_sites,
     doProcess: false,
     requestNames: '',
     requestCount: 0,
     echoHash: {},
-    cmdAction: function(args, bang, count) { // {{{
+    cmdAction: function(args) { //{{{
 
         if (MultiRequester.doProcess) return;
+
+        var bang = args.bang;
+        var count = args.count;
 
         var parsedArgs = this.parseArgs(args);
         if (parsedArgs.count == 0) { return; } // do nothing
@@ -256,18 +277,21 @@ var MultiRequester = {
             let urlEncode = info.urlEncode || srcEncode;
 
             let idxRepStr = url.indexOf('%s');
-            if (idxRepStr > -1 && !parsedArgs.str) continue;
+            if (idxRepStr > -1 && !parsedArgs.strs.length) continue;
 
             // via. lookupDictionary.js
             let ttbu = Components.classes['@mozilla.org/intl/texttosuburi;1']
                                  .getService(Components.interfaces.nsITextToSubURI);
-            url = url.replace(/%s/g, ttbu.ConvertAndEscape(urlEncode, parsedArgs.str));
+
+            let cnt = 0;
+            url = url.replace(/%s/g, function(m, i) ttbu.ConvertAndEscape(urlEncode, 
+                        (cnt < parsedArgs.strs.length ? parsedArgs.strs[cnt++] : parsedArgs.strs[cnt - 1])));
             logger.log(url + '[' + srcEncode + '][' + urlEncode + ']::' + info.xpath);
 
             if (bang) {
                 liberator.open(url, liberator.NEW_TAB);
             } else {
-                let req = new lib.Request(url, null, {
+                let req = new libly.Request(url, null, {
                     encoding: srcEncode,
                     siteinfo: info,
                     args: {
@@ -290,33 +314,37 @@ var MultiRequester = {
             MultiRequester.doProcess = false;
         }
     },
-    // return {names: '', str: '', count: 0, siteinfo: [{}]}
+    // return {names: '', strs: [''], count: 0, siteinfo: [{}]}
     parseArgs: function(args) {
 
         var self = this;
         var ret = {};
         ret.names = '';
-        ret.str = '';
+        ret.strs = [];
         ret.count = 0;
-        ret.siteinfo = [];
-
-        if (!args) return ret;
-
-        var arguments = args.split(/ +/);
         var sel = $U.getSelectedString();
 
-        if (arguments.length < 1) return ret;
+        if (args.length < 1 && !sel.length) return ret;
 
-        ret.names = arguments.shift();
-        ret.str = (arguments.length < 1 ? sel : arguments.join()).replace(/[\n\r]+/g, '');
+        function parse(args, names) {
+            args = Array.concat(args);
+            ret.siteinfo = [];
+            ret.names = names || args.shift() || '';
+            ret.strs = (args.length < 1 ? [sel.replace(/[\n\r]+/g, '')] : args);
 
-        ret.names.split(',').forEach(function(name) {
-            var site = self.getSite(name);
-            if (site) {
-                ret.count++;
-                ret.siteinfo.push(site);
-            }
-        });
+            ret.names.split(',').forEach(function(name) {
+                var site = self.getSite(name);
+                if (site) {
+                    ret.count++;
+                    ret.siteinfo.push(site);
+                }
+            });
+        }
+
+        parse(args);
+
+        if (!ret.siteinfo.length && this.defaultSites)
+            parse(args, this.defaultSites);
 
         return ret;
     },
@@ -327,14 +355,13 @@ var MultiRequester = {
             if (s.name == name) ret = s;
         });
         return ret;
-    }, // }}}
+    },//}}}
     extractLink: function(res, extractLink) { //{{{
 
         var el = res.getHTMLDocument(extractLink);
         if (!el) throw 'extract link failed.: extractLink -> ' + extractLink;
-        var a = el.firstChild;
-        var url = $U.pathToURL((a.href || a.action || a.value));
-        var req = new Request(url, null, $U.extend(res.req.options, {extractLink: true}));
+        var url = $U.pathToURL(el[0], res.req.url);
+        var req = new libly.Request(url, null, $U.extend(res.req.options, {extractLink: true}));
         req.addEventListener('onException', $U.bind(this, this.onException));
         req.addEventListener('onSuccess', $U.bind(this, this.onSuccess));
         req.addEventListener('onFailure', $U.bind(this, this.onFailure));
@@ -342,7 +369,7 @@ var MultiRequester = {
         MultiRequester.requestCount++;
         MultiRequester.doProcess = true;
 
-    }, //}}}
+    },//}}}
     onSuccess: function(res) { //{{{
 
         if (!MultiRequester.doProcess) {
@@ -356,14 +383,14 @@ var MultiRequester = {
             MultiRequester.doProcess = false;
         }
 
-        var url, escapedUrl, xpath, doc, html, extractLink;
+        var url, escapedUrl, xpath, doc, html, extractLink, ignoreTags;
 
         try {
 
-            if (!res.isSuccess || res.responseText == '') throw 'response is fail or null';
+            if (!res.isSuccess() || res.responseText == '') throw 'response is fail or null';
 
             url = res.req.url;
-            escapedUrl = liberator.util.escapeHTML(url);
+            escapedUrl = util.escapeHTML(url);
             xpath = res.req.options.siteinfo.xpath;
             extractLink = res.req.options.siteinfo.extractLink;
 
@@ -371,15 +398,25 @@ var MultiRequester = {
                 this.extractLink(res, extractLink);
                 return;
             }
-
-            doc = res.getHTMLDocument(xpath);
+            ignoreTags = ['script'].concat(libly.$U.A(res.req.options.siteinfo.ignoreTags));
+            doc = document.createElementNS(null, 'div');
+            res.getHTMLDocument(xpath, null, ignoreTags, function(node, i) {
+                if (node.tagName.toLowerCase() != 'html')
+                    doc.appendChild(node);
+            });
             if (!doc) throw 'XPath result is undefined or null.: XPath -> ' + xpath;
 
+            $U.getNodesFromXPath('descendant-or-self::a | descendant-or-self::img', doc, function(node) {
+                var tagName = node.tagName.toLowerCase();
+                if (tagName == 'a') {
+                    node.href = $U.pathToURL(node, url, res.doc);
+                } else if (tagName == 'img') {
+                    node.src = $U.pathToURL(node, url, res.doc);
+                }
+            });
+
             html = '<a href="' + escapedUrl + '" class="hl-Title" target="_self">' + escapedUrl + '</a>' +
-                   (new XMLSerializer()).serializeToString(doc)
-                            .replace(/<[^>]+>/g, function(all) all.toLowerCase())
-                            .replace(/<!--(?:[^-]|-(?!->))*-->/g, ''); // actually
-                            //.replace(/<!--(?:[^-]|-(?!-))*-->/g, ''); // strictly
+                   $U.xmlSerialize(doc);
 
             MultiRequester.echoHash[res.req.options.siteinfo.name] = html;
 
@@ -392,7 +429,7 @@ var MultiRequester = {
         if (MultiRequester.requestCount == 0) {
             let echoList = [];
             MultiRequester.requestNames.split(',').forEach(function(name) {
-                echoList.push(MultiRequester.echoHash[name])
+                echoList.push(MultiRequester.echoHash[name]);
             });
             html = '<div style="white-space:normal;"><base href="' + escapedUrl + '"/>' +
                    echoList.join('') +

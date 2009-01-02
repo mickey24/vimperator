@@ -79,24 +79,22 @@ liberator.globalVariables.copy_templates.forEach(function(template){
 // used when argument is none
 //const defaultValue = templates[0].label;
 commands.addUserCommand(['copy'],'Copy to clipboard',
-    function(args, special){
-        liberator.plugins.exCopy.copy(args, special);
+    function(args){
+        liberator.plugins.exCopy.copy(args.string, args.bang);
     },{
-        completer: function(filter, special){
-            if (special){
-                return completion.javascript(filter);
+        completer: function(context, args){
+            if (args.bang){
+                completion.javascript(context);
+                return;
             }
+            context.title = ['Template','Value'];
             var templates = liberator.globalVariables.copy_templates.map(function(template)
                 [template.label, liberator.modules.util.escapeString(template.value, '"')]
             );
-            if (!filter){ return [0,templates]; }
+            if (!context.filter){ context.completions = templates; return; }
             var candidates = [];
-            templates.forEach(function(template){
-                if (template[0].toLowerCase().indexOf(filter.toLowerCase()) == 0){
-                    candidates.push(template);
-                }
-            });
-            return [0, candidates];
+            var filter = context.filter.toLowerCase();
+            context.completions = templates.filter(function(template) template[0].toLowerCase().indexOf(filter) == 0);
         },
         bang: true
     }
@@ -119,17 +117,38 @@ function replaceVariable(str){
     if (!str) return '';
     var win = new XPCNativeWrapper(window.content.window);
     var sel = '',htmlsel = '';
-    if (str.indexOf('%SEL%') >= 0 || str.indexOf('%HTMLSEL%') >= 0){
-        sel = win.getSelection().rangeCount()>0? win.getSelection().getRangeAt(0): '';
-    }
-    if (str.indexOf('%HTMLSEL%') >= 0){
-        var serializer = new XMLSerializer();
-        htmlsel = serializer.serializeToString(sel.cloneContents());
-    }
-    return str.replace(/%TITLE%/g,buffer.title)
-              .replace(/%URL%/g,buffer.URL)
-              .replace(/%SEL%/g,sel.toString())
-              .replace(/%HTMLSEL%/g,htmlsel);
+    var selection =  win.getSelection();
+    function replacer(value){ //{{{
+        switch(value){
+            case '%TITLE%':
+                return buffer.title;
+            case '%URL%':
+                return buffer.URL;
+            case '%SEL%':
+                if (sel)
+                    return sel;
+                else if (selection.rangeCount < 1)
+                    return '';
+
+                for (var i=0, c=selection.rangeCount; i<c; i++){
+                    sel += selection.getRangeAt(i).toString();
+                }
+                return sel;
+            case '%HTMLSEL%':
+                if (htmlsel)
+                    return sel;
+                else if (selection.rangeCount < 1)
+                    return '';
+
+                var serializer = new XMLSerializer();
+                for (var i=0, c=selection.rangeCount; i<c; i++){
+                    htmlsel += serializer.serializeToString(selection.getRangeAt(i).cloneContents());
+                }
+                return htmlsel;
+        }
+        return '';
+    } //}}}
+    return str.replace(/%(TITLE|URL|SEL|HTMLSEL)%/g, replacer);
 }
 
 var exCopyManager = {
@@ -143,13 +162,12 @@ var exCopyManager = {
     get: function(label){
         return getCopyTemplate(label);
     },
-    copy: function(args, special){
-        var arg = args.string == undefined ? args: args.string;
+    copy: function(arg, special){
         var copyString = '';
         var isError = false;
         if (special && arg){
             try {
-                copyString = window.eval('with(liberator){' + arg + '}');
+                copyString = liberator.eval( arg);
                 switch (typeof copyString){
                     case 'object':
                         copyString = copyString === null ? 'null' : copyString.toSource();
@@ -171,7 +189,7 @@ var exCopyManager = {
             }
         } else {
             if (!arg) arg = liberator.globalVariables.copy_templates[0];
-            var template = getCopyTemplate(arg) || arg;
+            var template = getCopyTemplate(arg) || {value: arg};
             if (typeof template.custom == 'function'){
                 copyString = template.custom.call(this, template.value);
             } else if (template.custom instanceof Array){
