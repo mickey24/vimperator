@@ -144,7 +144,7 @@ let g:reading_servicename='Reading'
 let g:reading_format='$COMMENT$SERVICENAME: $TITLE $URL'
 "}}}1
 
-source! ~/git/vimperator/.vimperatorrc.local
+source! ~/.vimperatorrc.local
 
 echo 'Loading .vimperatorrc ... done.'
 
