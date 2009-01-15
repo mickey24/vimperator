@@ -81,7 +81,8 @@ set complete=l
 set focuscontent
 set hinttimeout=500
 set newtab=all
-set novisualbell
+set visualbell
+highlight Bell display:none
 set showtabline=0
 set wildoptions=auto
 let mapleader=','
