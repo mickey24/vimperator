@@ -66,7 +66,7 @@ cnoremap <C-b> <Left>
 cnoremap <C-f> <Right>
 cnoremap <C-p> <S-Tab>
 cnoremap <C-n> <Tab>
-cnoremap <C-j> <silent>
+cnoremap <C-j> <NOP>
 
 " For insert mode "{{{2
 inoremap <C-b> <Left>
@@ -86,6 +86,7 @@ highlight Bell display:none
 set showtabline=0
 set wildoptions=auto
 let mapleader=','
+set! ui.key.generalAccessKey=0
 
 " Plugin settings "{{{1
 " char-hints-mod2.js "{{{2
