@@ -4,10 +4,9 @@ var PLUGIN_INFO =
     <name>{NAME}</name>
     <description>character hint mode.</description>
     <author mail="konbu.komuro@gmail.com" homepage="http://d.hatena.ne.jp/hogelog/">hogelog</author>
-    <version>0.1.1</version>
+    <version>0.3.0</version>
     <minVersion>2.0pre 2008/12/12</minVersion>
-    <maxVersion>2.0a1</maxVersion>
-    <date>2008/12/22 14:57:34</date>
+    <maxVersion>2.1pre</maxVersion>
     <updateURL>http://svn.coderepos.org/share/lang/javascript/vimperator-plugins/trunk/char-hints-mod2.js</updateURL>
     <detail><![CDATA[
 == Usage ==
@@ -17,20 +16,27 @@ and
 select charhint label in uppercase.
 
 == SETTING ==
-let g:hinstchars:
+let g:hintchars:
     set character used by char-hint.
-    ex)
-      let g:hinstchars="hjkl"
+    e.g.)
+      let g:hintchars="hjkl"
 let g:hintsio:
     - "i" setting char-hint input lowercase.
     - "I" setting char-hint input uppercase.
     - "o" setting char-hint show lowercase.
     - "O" setting char-hint show uppercase.
     Default setting is "IO".
-    ex)
-      let g:histsio="i"
+    e.g.)
+      let g:hintsio="i"
+let g:hintlabeling:
+    - "s" setting simple n-base decimal hint labeling (n = hintchars.length)
+    - "a" setting adjust no overlap labeling
+    Default setting is "s".
+    e.g.)
+      let g:hintlabeling="a"
 
 == TODO ==
+
      ]]></detail>
     <detail lang="ja"><![CDATA[
 == Usage ==
@@ -39,20 +45,27 @@ let g:hintsio:
 大文字は文字ラベルの選択に使います。
 
 == SETTING ==
-let g:hinstchars:
+let g:hintchars:
     set character used by char-hint.
-    ex)
-      let g:hinstchars="hjkl"
+    e.g.)
+      let g:hintchars="hjkl"
 let g:hintsio:
     - "i" setting char-hint input lowercase.
     - "I" setting char-hint input uppercase.
     - "o" setting char-hint show lowercase.
     - "O" setting char-hint show uppercase.
     Default setting is "IO".
-    ex)
-      let g:histsio="i"
+    e.g.)
+      let g:hintsio="i"
+let g:hintlabeling:
+    - "s" setting simple n-base decimal hint labeling (n = hintchars.length)
+    - "a" setting adjust no overlap labeling
+    Default setting is "s".
+    e.g.)
+      let g:hintlabeling="a"
 
 == TODO ==
+
      ]]></detail>
 </VimperatorPlugin>;
 //}}}
@@ -66,6 +79,9 @@ let g:hintsio:
     let inputCase = function(str) str.toUpperCase();
     let inputRegex = /[A-Z]/;
     let showCase = function(str) str.toUpperCase();
+    let getStartCount = function() 0;
+
+    let timer = null;
 
     function chars2num(chars) //{{{
     {
@@ -89,28 +105,47 @@ let g:hintsio:
 
         return chars;
     } //}}}
-    function showCharHints() //{{{
+    function getAdjustStartCount(base, count) //{{{
     {
-        function showHints(win)
-        {
-            for(let elem in buffer.evaluateXPath("//*[@liberator:highlight and @number]", win.document))
-            {
-                let num = elem.getAttribute("number");
-                let hintchar = num2chars(parseInt(num, 10));
-                elem.setAttribute("hintchar", showCase(hintchar));
-                if(isValidHint(hintchar))
-                    validHints.push(elem);
-            }
-            Array.forEach(win.frames, showHints);
+        if(count < base) {
+            return 0;
+        } else if(count >= Math.pow(base, 2)) {
+            return base;
         }
-
-        validHints = [];
-        showHints(window.content);
+        var start = Math.floor(count / base);
+        var adjust = count + start;
+        var next_start;
+        while(start != (next_start = Math.floor(adjust / base))) {
+            adjust += start;
+            start = next_start;
+        }
+        return start;
     } //}}}
-    function isValidHint(hint) //{{{
+    function getCharHints(win) //{{{
     {
-        if(hintInput.length == 0 ) return false;
-        return inputCase(hint).indexOf(hintInput) == 0;
+        let hints = [];
+        (function (win) {
+            let elems = [elem for(elem in buffer.evaluateXPath('//*[@liberator:highlight="Hint" and @number]', win.document))];
+            hints = hints.concat(elems);
+            Array.forEach(win.frames, arguments.callee);
+        })(win);
+        return hints;
+    } //}}}
+    function showCharHints(hints) //{{{
+    {
+        let start = getStartCount(hintchars.length, hints.length);
+        for(let i=0,len=hints.length;i<len;++i) {
+            let hint = hints[i];
+            let num = hint.getAttribute("number");
+            let hintchar = num2chars(parseInt(num, 10)+start);
+            hint.setAttribute("hintchar", showCase(hintchar));
+        }
+    } //}}}
+    function isValidHint(hintInput, hint) //{{{
+    {
+        if(hintInput.length == 0) return false;
+        let hintchar = hint.getAttribute("hintchar");
+        return inputCase(hintchar).indexOf(hintInput) == 0;
     } //}}}
     function setIOType(type) //{{{
     {
@@ -132,15 +167,56 @@ let g:hintsio:
                 break;
         }
     } //}}}
+    function clearOriginalTimeout() //{{{
+    {
+        liberator.eval('if(activeTimeout) clearTimeout(activeTimeout);activeTimeout = null;', hintContext);
+    } //}}}
+    function processHintInput(hintInput, hints) //{{{
+    {
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+        let start = getStartCount(hintchars.length, hints.length);
+        let num = chars2num(hintInput)-start;
+        if(num < 0) return;
+
+        let numstr = String(num);
+        for(let i=0,l=numstr.length;i<l;++i) {
+            let num = numstr[i];
+            // events.toString(e) return e.liberatorString
+            // if e.liberatorString.
+            // so alt handled as press number event by vimperator.
+            let alt = new Object;
+            alt.liberatorString = num;
+            charhints.original.onEvent(alt);
+        }
+        clearOriginalTimeout();
+        statusline.updateInputBuffer(hintInput);
+
+        let validHints = hints.filter(function(hint) isValidHint(hintInput, hint));
+        if(validHints.length == 1) {
+            charhints.original.processHints(true);
+            return true;
+        }
+
+        let timeout = options["hinttimeout"];
+        if (timeout > 0) {
+            timer = setTimeout(function () {
+                charhints.original.processHints(true);
+            }, timeout);
+        }
+
+    } //}}}
 
     var hintInput = "";
-    var validHints = [];
     var charhints = plugins.charhints = {
         show: function (minor, filter, win) //{{{
         {
             charhints.original.show(minor, filter, win);
             hintInput = "";
-            showCharHints();
+            let hints = getCharHints(window.content);
+            showCharHints(hints);
         }, //}}}
         onInput: function (event) //{{{
         {
@@ -150,30 +226,17 @@ let g:hintsio:
             }
             let hintString = commandline.command;
             commandline.command = hintString.replace(inputRegex, "");
+
             charhints.original.onInput(event);
+
             for(let i=0,l=hintString.length;i<l;++i) {
                 if(inputRegex.test(hintString[i])) {
                     hintInput += hintString[i];
                 }
             }
-            showCharHints();
-            if(hintInput.length>0) {
-                let numstr = String(chars2num(hintInput));
-                // no setTimeout, don't run nice
-                setTimeout(function () {
-                    for(let i=0,l=numstr.length;i<l;++i) {
-                        let num = numstr[i];
-                        let alt = new Object;
-                        alt.liberatorString = num;
-                        charhints.original.onEvent(alt);
-                    }
-                    statusline.updateInputBuffer(hintInput);
-                    if(validHints.length == 1) {
-                        charhints.original.processHints(true);
-                        return true;
-                    }
-                }, 10);
-            }
+            let hints = getCharHints(window.content);
+            showCharHints(hints);
+            if(hintInput.length>0) processHintInput(hintInput, hints);
         }, //}}}
         onEvent: function (event) //{{{
         {
@@ -181,8 +244,19 @@ let g:hintsio:
                 charhints.onInput(event);
             } else {
                 charhints.original.onEvent(event);
+                clearOriginalTimeout();
                 statusline.updateInputBuffer(hintInput);
             }
+        }, //}}}
+        processHints: function (followFirst) //{{{
+        {
+            // don't followFirst if processHints call from
+            // charhints.original.onEvent(alt) in processHintInput
+            let caller = arguments.callee.caller;
+            if(caller == charhints.original.onEvent && caller.caller == processHintInput)
+                return charhints.original.processHints(false);
+
+            return charhints.original.processHints(followFirst);
         }, //}}}
     };
 
@@ -199,16 +273,26 @@ let g:hintsio:
             hints.show = charhints.show;
             hints.onEvent = charhints.onEvent;
             liberator.eval("onInput = plugins.charhints.onInput", hintContext);
+            liberator.eval("processHints = plugins.charhints.processHints", hintContext);
 
-            liberator.execute(":hi Hint::after content: attr(hintchar)");
+            liberator.execute(":hi Hint::after content: attr(hintchar)", true, true);
             if(liberator.globalVariables.hintsio) {
                 let hintsio = liberator.globalVariables.hintsio;
-                for(let i=0,l=hintsio.length;i<l;++i) {
-                    setIOType(hintsio[i]);
-                }
+                Array.forEach(hintsio, setIOType);
             }
             if(liberator.globalVariables.hintchars) {
                 hintchars = liberator.globalVariables.hintchars;
+            }
+            if(liberator.globalVariables.hintlabeling) {
+                switch(liberator.globalVariables.hintlabeling) {
+                    default:
+                    case "s":
+                        getStartCount = function() 0;
+                        break;
+                    case "a":
+                        getStartCount = getAdjustStartCount;
+                        break;
+                }
             }
         }; //}}}
         charhints.uninstall = function () //{{{
@@ -216,8 +300,9 @@ let g:hintsio:
             hints.show = charhints.original.show;
             hints.onEvent = charhints.original.onEvent;
             liberator.eval("onInput = plugins.charhints.original.onInput", hintContext);
+            liberator.eval("processHints = plugins.charhints.original.processHints", hintContext);
 
-            liberator.execute(":hi Hint::after content: attr(number)");
+            liberator.execute(":hi Hint::after content: attr(number)", true, true);
         }; //}}}
     }
     charhints.install();
