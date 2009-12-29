@@ -1,50 +1,78 @@
-// Vimperator plugin: 'Direct Post to Social Bookmarks'
-// Version: 0.12
-// Last Change: 27-Nov-2008. Jan 2008
-// License: Creative Commons
-// Maintainer: Trapezoid <trapezoid.g@gmail.com> - http://unsigned.g.hatena.ne.jp/Trapezoid
-// Parts:
-//      http://d.hatena.ne.jp/fls/20080309/p1
-//      Pagerization (c) id:ofk
-//      AutoPagerize (c) id:swdyh
-//      direct_delb.js id:mattn
-//      JSDeferred id:cho45
-//
-// Social Bookmark direct add script for Vimperator 0.6.*
-// for Migemo search: require XUL/Migemo Extension
-//
-// Variables:
-//  'g:direct_sbm_use_services_by_tag'
-//      Use social bookmark services to extract tags
-//          'h': Hatena Bookmark
-//          'd': del.icio.us
-//          'l': livedoor clip
-//          'p': Places (Firefox bookmarks)
-//      Usage: let g:direct_sbm_use_services_by_tag = "hdl"
-//  'g:direct_sbm_use_services_by_post'
-//      Use social bookmark services to post
-//          'h': Hatena Bookmark
-//          'd': del.icio.us
-//          'l': livedoor clip
-//          'g': Google Bookmarks
-//          'p': Places (Firefox bookmarks)
-//      Usage: let g:direct_sbm_use_services_by_post = "hdl"
-//  'g:direct_sbm_is_normalize'
-//      Use normalize permalink
-//  'g:direct_sbm_is_use_migemo'
-//      Use Migemo completion
-// Commands:
-//  ':btags'
-//      Extract tags from social bookmarks for completion
-//  ':sbm'
-//      Post a current page to social bookmarks
-//      Arguments
-//          -s,-service: default:"hdl"
-//              Specify target SBM services to post
-//  ':bentry'
-//      Goto Bookmark Entry Page
-//  ':bicon'
-//      Show Bookmark Count as Icon
+// Last Change: 09-Jan-2009. Jan 2008
+var PLUGIN_INFO =
+<VimperatorPlugin>
+    <name>{NAME}</name>
+    <description>Direct Post to Social Bookmarks</description>
+    <author mail="trapezoid.g@gmail.com" homepage="http://unsigned.g.hatena.ne.jp/Trapezoid">Trapezoid</author>
+    <version>0.14</version>
+    <license>Creative Commons</license>
+    <minVersion>2.0pre</minVersion>
+    <maxVersion>2.0pre</maxVersion>
+    <updateURL>http://svn.coderepos.org/share/lang/javascript/vimperator-plugins/trunk/direct_bookmark.js</updateURL>
+    <detail><![CDATA[
+Social Bookmark direct add script for Vimperator 0.6.*.
+for Migemo search: require XUL/Migemo Extension
+
+== Parts ==
+- http://d.hatena.ne.jp/fls/20080309/p1
+- Pagerization (c) id:ofk
+- AutoPagerize (c) id:swdyh
+- direct_delb.js id:mattn
+- JSDeferred id:cho45
+
+
+== Variables ==
+=== g:direct_sbm_use_services_by_tag ===
+>||
+      Use social bookmark services to extract tags
+          'h': Hatena Bookmark
+          'd': del.icio.us
+          'l': livedoor clip
+          'p': Places (Firefox bookmarks)
+      Usage: let g:direct_sbm_use_services_by_tag = "hdl"
+||<
+=== g:direct_sbm_use_services_by_post ===
+>||
+      Use social bookmark services to post
+          'h': Hatena Bookmark
+          'd': del.icio.us
+          'l': livedoor clip
+          'g': Google Bookmarks
+          'p': Places (Firefox bookmarks)
+      Usage: let g:direct_sbm_use_services_by_post = "hdl"
+||<
+=== g:direct_sbm_is_normalize ===
+>||
+      Use normalize permalink
+||<
+=== g:direct_sbm_is_use_migemo ===
+>||
+      Use Migemo completion
+||<
+
+== Commands ==
+=== :btags ===
+>||
+      Extract tags from social bookmarks for completion
+||<
+=== :sbm ===
+>||
+      Post a current page to social bookmarks
+      Arguments
+          -s,-service: default:"hdl"
+              Specify target SBM services to post
+||<
+=== :bentry ===
+>||
+      Goto Bookmark Entry Page
+||<
+=== :bicon ===
+>||
+      Show Bookmark Count as Icon
+||<
+   ]]></detail>
+</VimperatorPlugin>;
+
 (function(){
     var evalFunc = window.eval;
     try {
@@ -58,10 +86,10 @@
 
     var useServicesByPost = liberator.globalVariables.direct_sbm_use_services_by_post || 'hdl';
     var useServicesByTag = liberator.globalVariables.direct_sbm_use_services_by_tag || 'hdl';
-    var isNormalize = liberator.globalVariables.direct_sbm_is_normalize ?
-        evalFunc(liberator.globalVariables.direct_sbm_is_normalize) : true;
-    var isUseMigemo = liberator.globalVariables.direct_sbm_is_use_migemo ?
-        evalFunc(liberator.globalVariables.direct_sbm_is_use_migemo) : true;
+    var isNormalize = typeof liberator.globalVariables.direct_sbm_is_normalize == 'undefined' ? 
+                      true : evalFunc(liberator.globalVariables.direct_sbm_is_normalize); 
+    var isUseMigemo = typeof liberator.globalVariables.direct_sbm_is_use_migemo == 'undefined' ? 
+                      true : evalFunc(liberator.globalVariables.direct_sbm_is_use_migemo);
 
     var XMigemoCore;
     try{
@@ -321,7 +349,7 @@
             description:'Hatena bookmark',
             account:['https://www.hatena.ne.jp', 'https://www.hatena.ne.jp', null],
             loginPrompt:{ user:'', password:'', description:'Enter username and password.' },
-            entryPage:'http://b.hatena.ne.jp/entry/%URL%',
+            entryPage:'http://b.hatena.ne.jp/entry/%URL::HATENA%',
             poster:function(user,password,url,title,comment,tags){
                 var tagString = tags.length > 0 ? '[' + tags.join('][') + ']' : "";
                 var request =
@@ -359,7 +387,6 @@
                 tags.forEach(function(tag){
                     hatena_tags.push(tag.innerHTML);
                 });
-                liberator.echo("Hatena Bookmark: Tag parsing is finished. Taglist length: " + tags.length);
                 return hatena_tags;
             },
             icon:function(url){
@@ -394,7 +421,6 @@
                 var tags = evalFunc("(" + xhr.responseText + ")");
                 for(var tag in tags)
                     returnValue.push(tag);
-                liberator.echo("del.icio.us: Tag parsing is finished. Taglist length: " + returnValue.length);
                 return returnValue;
             },
             icon:function(url){
@@ -451,7 +477,6 @@
                 tags.forEach(function(tag){
                     ldc_tags.push(tag.textContent);
                 });
-                liberator.echo("livedoor clip: Tag parsing is finished. Taglist length: " + tags.length);
                 return ldc_tags;
             },
             icon:function(url){
@@ -509,7 +534,6 @@
                 var tags = xhr.responseXML.getElementsByTagName('tag');
                 for(var n = 0; n < tags.length; n++)
                     returnValue.push(tags[n].getAttribute('tag'));
-                liberator.echo("foves: Tag parsing is finished. Taglist length: " + returnValue.length);
                 return returnValue;
             },
         },
@@ -535,31 +559,46 @@
     };
     liberator.plugins.direct_bookmark = { services: services, tags: [] };
 
-    function getTags(arg){
+    function getTagsAsync(arg){
         var d,first;
         d = first = Deferred();
 
         useServicesByTag.split(/\s*/).forEach(function(service){
             var user, password, currentService = services[service] || null;
             [user,password] = currentService.account ? getUserAccount.apply(currentService,currentService.account) : ["", ""];
-            d = d.next(function(t) t.concat(currentService.tags(user,password)));
+            d = d.next(function(t) {
+                var tags = currentService.tags(user,password);
+                liberator.echo(currentService.description + ": Tag parsing is finished. Taglist length: " + tags.length);
+                return t.concat(tags);
+            });
         });
         d.next(function(tags){liberator.plugins.direct_bookmark.tags = tags.filter(function(e,i,a) a.indexOf(e) == i).sort()})
          .error(function(e){liberator.echoerr("direct_bookmark.js: Exception throwed! " + e)});
         return first;
     }
+    function getTags(arg){
+        var user,password;
+        var tags = [];
+        useServicesByTag.split(/\s*/).forEach(function(service){
+            var currentService = services[service] || null;
+            [user,password] = currentService.account ? getUserAccount.apply(currentService,currentService.account) : [null, null];
+            tags = tags.concat(currentService.tags(user,password));
+        });
+        liberator.plugins.direct_bookmark.tags = tags.filter(function(e,i,a) a.indexOf(e) == i).sort();
+    }
     liberator.modules.commands.addUserCommand(['btags'],"Update Social Bookmark Tags",
-        function(arg){setTimeout(function(){getTags().call([])},0)}, {});
+        function(arg){setTimeout(function(){getTagsAsync().call([])},0)}, {});
     liberator.modules.commands.addUserCommand(['bentry'],"Goto Bookmark Entry Page",
-        function(service, special){
-            service = service.string || useServicesByPost.split(/\s*/)[0];
+        function(args){
+            var service = args.string || useServicesByPost.split(/\s*/)[0];
             var currentService = services[service] || null;
             if(!currentService || !currentService.entryPage) {
                 return;
             }
             liberator.open(currentService.entryPage
-                .replace(/%URL(?:::(ESC|MD5))?%/g, function(x, t){
+                .replace(/%URL(?:::(HATENA|ESC|MD5))?%/g, function(x, t){
                     if(!t) return liberator.modules.buffer.URL.replace(/#/, '%23');
+                    if(t == "HATENA") return liberator.modules.buffer.URL.replace(/^http:\/\//, '').replace(/^https:\/\//, 's/').replace(/#/, '%23');
                     if(t == "ESC") return encodeURIComponent(liberator.modules.buffer.URL);
                     if(t == "MD5"){
                         var url = liberator.modules.buffer.URL;
@@ -577,7 +616,7 @@
                         }
                         return ascii.join('').toLowerCase();
                     }
-                }), special ? liberator.NEW_TAB : liberator.CURRENT_TAB);
+                }), args.bang ? liberator.NEW_TAB : liberator.CURRENT_TAB);
         },{
             completer: function(filter)
                 [0, useServicesByPost.split(/\s*/).map(function(p) [p, services[p].description])]
@@ -634,11 +673,12 @@
             d.error(function(e){liberator.echoerr("direct_bookmark.js: Exception throwed! " + e);liberator.log(e);});
             setTimeout(function(){first.call();},0);
         },{
-            completer: function(context, arg, special){
+            completer: function(context, arg){
                 let filter = context.filter;
                 var match_result = filter.match(/((?:\[[^\]]*\])*)\[?(.*)/); //[all, commited, now inputting]
                 var m = new RegExp(XMigemoCore && isUseMigemo ? "^(" + XMigemoCore.getRegExp(match_result[2]) + ")" : "^" + match_result[2],'i');
                 var completionList = [];
+                // XXX: completer works asynchronous. thus we shouldn't call getTagsAsync().
                 if(liberator.plugins.direct_bookmark.tags.length == 0)
                     getTags().call([]);
                 context.title = ['Tag','Description'];

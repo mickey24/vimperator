@@ -140,10 +140,6 @@ liberator.globalVariables.multi_requester_mappings = [
     [',ts', 'yahoo-transit', '!', '東京 新宿'],
 ];
 EOM
-
-" reading.js "{{{2
-let g:reading_servicename='Reading'
-let g:reading_format='$COMMENT$SERVICENAME: $TITLE $URL'
 "}}}1
 
 source! ~/.vimperatorrc.local
