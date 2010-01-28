@@ -31,6 +31,7 @@ EOM
 
 " For US keyboard
 noremap ; :
+noremap : ;
 
 " Scroll settings
 noremap j 5j
@@ -51,11 +52,21 @@ noremap ,l <Esc>:tabmove! +1<CR>
 " Add the current page to hatena bookmark and delicious
 noremap A <Esc>:sbm<Space>[
 
+" Show HTTP Headers
+noremap ,p <Esc>:pageinfo gfmhH<CR>
+
 " Toggle ldrize_cooperation
 noremap q <Esc>:toggleldrc<CR>
 
+" Toggle NoScript
+noremap ,ss <Esc>:noscript togletemp<CR>
+noremap ,S <Esc>:noscript togletemp<CR>
+
 " multi_requester for SPACE ALC
 noremap ,a :mr alc<Space>
+
+" View ookmark comments of the current page
+noremap ,v <Esc>:viewSBMComments<CR>
 
 " Disable some mappings
 noremap gh <Nop>
@@ -110,11 +121,19 @@ let g:direct_sbm_is_use_migemo='true'
 autocmd LocationChange .* :fmapc
 
 " feedSomeKeys.js:livedoor Reader
-autocmd LocationChange reader\\.livedoor\\.com/reader/ :fmap j k s a p o v c <Space> <S-Space> z b < > g u G
+autocmd LocationChange reader\\.livedoor\\.com/reader/ :fmap j k s a p o v c <Space> <S-Space> z b < > g G
 autocmd LocationChange reader\\.livedoor\\.com/reader/ :fmap o,vj J,<Space> K,<S-Space>
 
 " feedSomeKeys.js:Gmail
-autocmd LocationChange mail\\.google\\.com/mail :fmap -depth 4 c / j k n p o u e x s r a # [ ] z ! ? gi gs gt gd ga gc
+autocmd LocationChange mail\\.google\\.com/mail :fmap c / j k n p o e x s r a # [ ] z ! ? gi gs gt gd ga gc
+
+" feedSomeKeys.js:Google Reader
+autocmd LocationChange www\\.google\\.co\\.jp/reader :fmap! -vkey j k n p m s t v A r S s,NO a,PO X O gh ga gs gt gu / ?
+
+" feedSomeKeys.js:Remember The Milk
+autocmd LocationChange https?://www\\.rememberthemilk\\.com/home/[^/]+/#section\\.tasks :fmap a,t e,c V,p v,d w,f q,g s Q,u W,l S,y I,r U,z <C-1>,1 <C-2>,2 <C-3>,3 <C-0>,4 <Del>
+autocmd LocationChange https?://www\\.rememberthemilk\\.com/home/[^/]+/#section\\.tasks :fmap k j x,i n,h m
+autocmd LocationChange https?://www\\.rememberthemilk\\.com/home/[^/]+/#section\\.tasks :fmap <C-H>,<C-S-Left> <C-L>,<C-S-Right>
 
 " feedSomeKeys.js:Tumblr (require: ReblogCommand)
 autocmd LocationChange .*\\.tumblr\\.com/ :fmap i,t I,T
@@ -140,6 +159,10 @@ liberator.globalVariables.multi_requester_mappings = [
     [',ts', 'yahoo-transit', '!', '東京 新宿'],
 ];
 EOM
+
+" sbmcommentsviewer.js "{{{2
+let g:def_sbms='h'
+
 "}}}1
 
 source! ~/.vimperatorrc.local
